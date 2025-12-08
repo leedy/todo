@@ -11,6 +11,10 @@ const settingsSchema = new mongoose.Schema({
     default: 30,
     min: 0,
     max: 120
+  },
+  displayOnly: {
+    type: Boolean,
+    default: false
   }
 }, {
   timestamps: true

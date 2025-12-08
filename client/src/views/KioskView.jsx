@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { io } from 'socket.io-client'
 
 const socket = io()
@@ -10,6 +10,8 @@ function KioskView() {
   const [showSuccess, setShowSuccess] = useState(false)
   const [successMessage, setSuccessMessage] = useState('')
   const [leadTime, setLeadTime] = useState(0)
+  const [displayOnly, setDisplayOnly] = useState(false)
+  const activeReminderRef = useRef(null)
 
   // Update clock every second
   useEffect(() => {
@@ -23,6 +25,7 @@ function KioskView() {
       const res = await fetch('/api/settings')
       const data = await res.json()
       setLeadTime(data.reminderLeadTime || 0)
+      setDisplayOnly(data.displayOnly || false)
     } catch (error) {
       console.error('Failed to fetch settings:', error)
     }
@@ -33,7 +36,7 @@ function KioskView() {
   }, [])
 
   // Fetch today's reminders
-  const fetchReminders = useCallback(async () => {
+  const fetchReminders = useCallback(async (currentActiveReminder) => {
     try {
       const res = await fetch('/api/kiosk/today')
       const data = await res.json()
@@ -46,7 +49,17 @@ function KioskView() {
       const adjustedTimeStr = `${String(adjustedTime.getHours()).padStart(2, '0')}:${String(adjustedTime.getMinutes()).padStart(2, '0')}`
 
       const pending = data.find(r => !r.isCompleted && r.time <= adjustedTimeStr)
-      if (pending && !showSuccess) {
+
+      // In display-only mode, auto-complete current reminder when a new one becomes due
+      if (displayOnly && currentActiveReminder && pending && pending._id !== currentActiveReminder._id) {
+        // Auto-complete the current reminder before showing the new one
+        await fetch(`/api/kiosk/complete/${currentActiveReminder._id}`, { method: 'POST' })
+        socket.emit('kiosk-state-change', {
+          currentReminderId: pending._id,
+          currentView: 'reminder'
+        })
+        setActiveReminder(pending)
+      } else if (pending && !showSuccess) {
         setActiveReminder(pending)
       } else if (!pending) {
         setActiveReminder(null)
@@ -54,11 +67,16 @@ function KioskView() {
     } catch (error) {
       console.error('Failed to fetch reminders:', error)
     }
-  }, [showSuccess, leadTime])
+  }, [showSuccess, leadTime, displayOnly])
+
+  // Keep ref in sync with state for use in intervals
+  useEffect(() => {
+    activeReminderRef.current = activeReminder
+  }, [activeReminder])
 
   useEffect(() => {
-    fetchReminders()
-    const interval = setInterval(fetchReminders, 30000) // Refresh every 30 seconds
+    fetchReminders(activeReminderRef.current)
+    const interval = setInterval(() => fetchReminders(activeReminderRef.current), 30000) // Refresh every 30 seconds
     return () => clearInterval(interval)
   }, [fetchReminders])
 
@@ -78,6 +96,7 @@ function KioskView() {
 
     socket.on('settings-updated', (settings) => {
       setLeadTime(settings.reminderLeadTime || 0)
+      setDisplayOnly(settings.displayOnly || false)
     })
 
     return () => {
@@ -203,15 +222,17 @@ function KioskView() {
             <p className="reminder-time-scheduled">
               Scheduled for {formatReminderTime(activeReminder.time)}
             </p>
-            <div className="reminder-buttons">
-              <button className="confirm-button" onClick={handleComplete}>
-                <span className="checkmark">✓</span>
-                I did it
-              </button>
-              <button className="skip-button" onClick={handleSkip}>
-                Skip
-              </button>
-            </div>
+            {!displayOnly && (
+              <div className="reminder-buttons">
+                <button className="confirm-button" onClick={handleComplete}>
+                  <span className="checkmark">✓</span>
+                  I did it
+                </button>
+                <button className="skip-button" onClick={handleSkip}>
+                  Skip
+                </button>
+              </div>
+            )}
           </div>
         ) : (
           // Idle state

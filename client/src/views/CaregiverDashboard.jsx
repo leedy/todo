@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { io } from 'socket.io-client'
+import CalendarHeatMap from '../components/CalendarHeatMap'
+import ReminderPerformance from '../components/ReminderPerformance'
 
 const socket = io()
 
@@ -20,7 +22,7 @@ function CaregiverDashboard() {
   const [kioskState, setKioskState] = useState(null)
   const [showModal, setShowModal] = useState(false)
   const [editingReminder, setEditingReminder] = useState(null)
-  const [settings, setSettings] = useState({ reminderLeadTime: 0 })
+  const [settings, setSettings] = useState({ reminderLeadTime: 0, displayOnly: false })
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -60,6 +62,14 @@ function CaregiverDashboard() {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ reminderLeadTime: minutes })
+    })
+  }
+
+  const updateDisplayOnly = async (enabled) => {
+    await fetch('/api/settings', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ displayOnly: enabled })
     })
   }
 
@@ -243,6 +253,25 @@ function CaregiverDashboard() {
                 <option value={120}>2 hours early</option>
               </select>
             </div>
+
+            {/* Display Only Mode */}
+            <div style={{ marginTop: 20, paddingTop: 20, borderTop: '1px solid #eee' }}>
+              <h3 style={{ fontSize: '1rem', marginBottom: 10 }}>Display Mode</h3>
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={settings.displayOnly || false}
+                  onChange={(e) => updateDisplayOnly(e.target.checked)}
+                  style={{ width: 'auto', marginTop: 3 }}
+                />
+                <div>
+                  <strong>Display only (no buttons)</strong>
+                  <p style={{ fontSize: '0.85rem', color: '#666', margin: '5px 0 0 0' }}>
+                    Hide action buttons on kiosk. Reminders will auto-complete when the next reminder becomes due.
+                  </p>
+                </div>
+              </label>
+            </div>
           </div>
 
           {/* Recent Activity */}
@@ -271,6 +300,24 @@ function CaregiverDashboard() {
                 <p>No activity recorded yet</p>
               </div>
             )}
+          </div>
+
+          {/* Compliance Calendar */}
+          <div className="dashboard-card" style={{ gridColumn: '1 / -1' }}>
+            <h2>Compliance Calendar (Last 30 Days)</h2>
+            <p style={{ fontSize: '0.9rem', color: '#666', marginBottom: 10 }}>
+              Click on a day to see details. Green = 90%+ completed, Yellow = 50-89%, Red = under 50%
+            </p>
+            <CalendarHeatMap days={30} />
+          </div>
+
+          {/* Reminder Performance */}
+          <div className="dashboard-card" style={{ gridColumn: '1 / -1' }}>
+            <h2>Reminder Performance (Last 30 Days)</h2>
+            <p style={{ fontSize: '0.9rem', color: '#666', marginBottom: 10 }}>
+              See which reminders are being completed vs missed. Sorted by lowest completion rate first.
+            </p>
+            <ReminderPerformance days={30} />
           </div>
 
           {/* Reminders */}

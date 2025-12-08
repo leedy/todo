@@ -219,6 +219,186 @@ app.get('/api/completions', async (req, res) => {
   }
 });
 
+// Get daily stats for calendar heat map
+app.get('/api/stats/daily', async (req, res) => {
+  try {
+    const { days = 30 } = req.query;
+    const dayNames = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+
+    // Get all active reminders to know expected counts per day
+    const reminders = await Reminder.find({ active: true });
+
+    // Build a map of day -> expected reminder count
+    const expectedByDay = {};
+    dayNames.forEach(day => {
+      expectedByDay[day] = reminders.filter(r => r.days.includes(day)).length;
+    });
+
+    // Get completions for the date range
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - parseInt(days));
+    startDate.setHours(0, 0, 0, 0);
+
+    const completions = await Completion.find({
+      scheduledFor: { $gte: startDate }
+    });
+
+    // Group completions by date
+    const statsByDate = {};
+
+    // Initialize all dates in range
+    for (let i = 0; i < parseInt(days); i++) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      const dateStr = date.toISOString().split('T')[0];
+      const dayOfWeek = dayNames[date.getDay()];
+
+      statsByDate[dateStr] = {
+        date: dateStr,
+        expected: expectedByDay[dayOfWeek],
+        completed: 0,
+        skipped: 0
+      };
+    }
+
+    // Count completions
+    completions.forEach(c => {
+      const dateStr = c.scheduledFor.toISOString().split('T')[0];
+      if (statsByDate[dateStr]) {
+        if (c.status === 'completed') {
+          statsByDate[dateStr].completed++;
+        } else if (c.status === 'skipped') {
+          statsByDate[dateStr].skipped++;
+        }
+      }
+    });
+
+    // Convert to array and sort by date
+    const result = Object.values(statsByDate).sort((a, b) =>
+      a.date.localeCompare(b.date)
+    );
+
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get per-reminder performance stats
+app.get('/api/stats/reminders', async (req, res) => {
+  try {
+    const { days = 30 } = req.query;
+    const dayNames = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - parseInt(days));
+    startDate.setHours(0, 0, 0, 0);
+
+    // Get all reminders (including inactive for historical data)
+    const reminders = await Reminder.find();
+
+    // Get completions for the date range
+    const completions = await Completion.find({
+      scheduledFor: { $gte: startDate }
+    });
+
+    // Calculate stats for each reminder
+    const reminderStats = reminders.map(reminder => {
+      // Count how many days this reminder was scheduled
+      let expectedCount = 0;
+      for (let i = 0; i < parseInt(days); i++) {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
+        const dayOfWeek = dayNames[date.getDay()];
+        if (reminder.days.includes(dayOfWeek)) {
+          expectedCount++;
+        }
+      }
+
+      // Count completions for this reminder
+      const reminderCompletions = completions.filter(
+        c => c.reminderId.toString() === reminder._id.toString()
+      );
+      const completedCount = reminderCompletions.filter(c => c.status === 'completed').length;
+      const skippedCount = reminderCompletions.filter(c => c.status === 'skipped').length;
+
+      return {
+        _id: reminder._id,
+        title: reminder.title,
+        time: reminder.time,
+        type: reminder.type,
+        active: reminder.active,
+        expected: expectedCount,
+        completed: completedCount,
+        skipped: skippedCount,
+        missed: Math.max(0, expectedCount - completedCount - skippedCount),
+        completionRate: expectedCount > 0 ? Math.round((completedCount / expectedCount) * 100) : 0
+      };
+    });
+
+    // Sort by completion rate (lowest first to highlight problems)
+    reminderStats.sort((a, b) => a.completionRate - b.completionRate);
+
+    res.json(reminderStats);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get detailed stats for a specific day
+app.get('/api/stats/day/:date', async (req, res) => {
+  try {
+    const { date } = req.params;
+    const dayNames = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+
+    const targetDate = new Date(date + 'T12:00:00');
+    const dayOfWeek = dayNames[targetDate.getDay()];
+
+    // Get reminders scheduled for this day of week
+    const reminders = await Reminder.find({
+      days: dayOfWeek
+    }).sort({ time: 1 });
+
+    // Get completions for this specific day
+    const startOfDay = new Date(date + 'T00:00:00');
+    const endOfDay = new Date(date + 'T23:59:59');
+
+    const completions = await Completion.find({
+      scheduledFor: { $gte: startOfDay, $lte: endOfDay }
+    });
+
+    // Build detailed list
+    const details = reminders.map(reminder => {
+      const completion = completions.find(
+        c => c.reminderId.toString() === reminder._id.toString()
+      );
+
+      return {
+        _id: reminder._id,
+        title: reminder.title,
+        time: reminder.time,
+        type: reminder.type,
+        status: completion ? completion.status : 'missed',
+        completedAt: completion?.completedAt || null
+      };
+    });
+
+    res.json({
+      date,
+      dayOfWeek,
+      reminders: details,
+      summary: {
+        total: details.length,
+        completed: details.filter(d => d.status === 'completed').length,
+        skipped: details.filter(d => d.status === 'skipped').length,
+        missed: details.filter(d => d.status === 'missed').length
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Get kiosk state
 app.get('/api/kiosk/state', async (req, res) => {
   try {
@@ -250,10 +430,14 @@ app.get('/api/settings', async (req, res) => {
 // Update settings
 app.put('/api/settings', async (req, res) => {
   try {
-    const { reminderLeadTime } = req.body;
+    const { reminderLeadTime, displayOnly } = req.body;
+    const updateFields = {};
+    if (reminderLeadTime !== undefined) updateFields.reminderLeadTime = reminderLeadTime;
+    if (displayOnly !== undefined) updateFields.displayOnly = displayOnly;
+
     const settings = await Settings.findOneAndUpdate(
       { settingsId: 'default' },
-      { reminderLeadTime },
+      updateFields,
       { new: true, upsert: true, runValidators: true }
     );
     io.emit('settings-updated', settings);

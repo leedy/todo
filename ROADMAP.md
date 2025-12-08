@@ -20,6 +20,17 @@
 - [ ] **Caregiver notifications** - Alert when medication is skipped (email/push)
 - [ ] **Better activity icons** - Visual distinction between completed/skipped in dashboard
 
+### Activity History & Analytics
+- [x] **Calendar heat map** - Color-coded calendar showing daily compliance (green/yellow/red)
+- [x] **Reminder performance** - Per-reminder completion rates to identify problem reminders
+- [x] **Daily breakdown view** - Click any day to see which reminders were completed/missed
+- [ ] **Compliance statistics** - Overall completion rate, streaks, averages by day of week
+- [ ] **Weekly summary chart** - Bar/line chart showing completion % over weeks to spot trends
+- [ ] **Time-of-day patterns** - Identify which times have the most misses
+- [ ] **Problem alerts** - Flag patterns like "Morning meds missed 3 days in a row"
+- [ ] **Date range filter** - View last 7 days, 30 days, or custom range
+- [ ] **Export to PDF/CSV** - Share history with doctors
+
 ### Medium Priority
 - [ ] **Raspberry Pi auto-start** - Boot directly into kiosk mode
 - [ ] **Screen dimming** - Dim screen at night, brighten for reminders

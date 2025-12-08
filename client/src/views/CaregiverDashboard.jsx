@@ -20,6 +20,7 @@ function CaregiverDashboard() {
   const [kioskState, setKioskState] = useState(null)
   const [showModal, setShowModal] = useState(false)
   const [editingReminder, setEditingReminder] = useState(null)
+  const [settings, setSettings] = useState({ reminderLeadTime: 0 })
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -48,10 +49,25 @@ function CaregiverDashboard() {
     setKioskState(data)
   }
 
+  const fetchSettings = async () => {
+    const res = await fetch('/api/settings')
+    const data = await res.json()
+    setSettings(data)
+  }
+
+  const updateLeadTime = async (minutes) => {
+    await fetch('/api/settings', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reminderLeadTime: minutes })
+    })
+  }
+
   useEffect(() => {
     fetchReminders()
     fetchCompletions()
     fetchKioskState()
+    fetchSettings()
 
     socket.emit('caregiver-connect')
 
@@ -64,9 +80,14 @@ function CaregiverDashboard() {
       setKioskState(state)
     })
 
+    socket.on('settings-updated', (newSettings) => {
+      setSettings(newSettings)
+    })
+
     return () => {
       socket.off('reminders-updated')
       socket.off('kiosk-state-update')
+      socket.off('settings-updated')
     }
   }, [])
 
@@ -192,6 +213,35 @@ function CaregiverDashboard() {
                   </p>
                 )}
               </div>
+            </div>
+
+            {/* Settings */}
+            <div style={{ marginTop: 20, paddingTop: 20, borderTop: '1px solid #eee' }}>
+              <h3 style={{ fontSize: '1rem', marginBottom: 10 }}>Reminder Lead Time</h3>
+              <p style={{ fontSize: '0.85rem', color: '#666', marginBottom: 10 }}>
+                Show reminders this many minutes before scheduled time
+              </p>
+              <select
+                value={settings.reminderLeadTime || 0}
+                onChange={(e) => updateLeadTime(parseInt(e.target.value))}
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  fontSize: '1rem',
+                  borderRadius: '4px',
+                  border: '1px solid #ddd'
+                }}
+              >
+                <option value={0}>At scheduled time (no lead)</option>
+                <option value={5}>5 minutes early</option>
+                <option value={10}>10 minutes early</option>
+                <option value={15}>15 minutes early</option>
+                <option value={30}>30 minutes early</option>
+                <option value={45}>45 minutes early</option>
+                <option value={60}>1 hour early</option>
+                <option value={90}>1.5 hours early</option>
+                <option value={120}>2 hours early</option>
+              </select>
             </div>
           </div>
 

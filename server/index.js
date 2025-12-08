@@ -8,6 +8,7 @@ const connectDB = require('./database');
 const Reminder = require('./models/Reminder');
 const Completion = require('./models/Completion');
 const KioskState = require('./models/KioskState');
+const Settings = require('./models/Settings');
 
 const app = express();
 const server = http.createServer(app);
@@ -229,6 +230,36 @@ app.get('/api/kiosk/state', async (req, res) => {
     res.json(state);
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+});
+
+// Get settings
+app.get('/api/settings', async (req, res) => {
+  try {
+    let settings = await Settings.findOne({ settingsId: 'default' });
+    if (!settings) {
+      settings = new Settings({ settingsId: 'default' });
+      await settings.save();
+    }
+    res.json(settings);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update settings
+app.put('/api/settings', async (req, res) => {
+  try {
+    const { reminderLeadTime } = req.body;
+    const settings = await Settings.findOneAndUpdate(
+      { settingsId: 'default' },
+      { reminderLeadTime },
+      { new: true, upsert: true, runValidators: true }
+    );
+    io.emit('settings-updated', settings);
+    res.json(settings);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
   }
 });
 

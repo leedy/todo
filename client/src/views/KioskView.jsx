@@ -9,11 +9,27 @@ function KioskView() {
   const [activeReminder, setActiveReminder] = useState(null)
   const [showSuccess, setShowSuccess] = useState(false)
   const [successMessage, setSuccessMessage] = useState('')
+  const [leadTime, setLeadTime] = useState(0)
 
   // Update clock every second
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000)
     return () => clearInterval(timer)
+  }, [])
+
+  // Fetch settings
+  const fetchSettings = async () => {
+    try {
+      const res = await fetch('/api/settings')
+      const data = await res.json()
+      setLeadTime(data.reminderLeadTime || 0)
+    } catch (error) {
+      console.error('Failed to fetch settings:', error)
+    }
+  }
+
+  useEffect(() => {
+    fetchSettings()
   }, [])
 
   // Fetch today's reminders
@@ -23,11 +39,13 @@ function KioskView() {
       const data = await res.json()
       setReminders(data)
 
-      // Find next pending reminder
+      // Find next pending reminder (considering lead time)
       const now = new Date()
-      const currentTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
+      // Add lead time to current time for comparison
+      const adjustedTime = new Date(now.getTime() + leadTime * 60 * 1000)
+      const adjustedTimeStr = `${String(adjustedTime.getHours()).padStart(2, '0')}:${String(adjustedTime.getMinutes()).padStart(2, '0')}`
 
-      const pending = data.find(r => !r.isCompleted && r.time <= currentTimeStr)
+      const pending = data.find(r => !r.isCompleted && r.time <= adjustedTimeStr)
       if (pending && !showSuccess) {
         setActiveReminder(pending)
       } else if (!pending) {
@@ -36,7 +54,7 @@ function KioskView() {
     } catch (error) {
       console.error('Failed to fetch reminders:', error)
     }
-  }, [showSuccess])
+  }, [showSuccess, leadTime])
 
   useEffect(() => {
     fetchReminders()
@@ -58,9 +76,14 @@ function KioskView() {
       })
     })
 
+    socket.on('settings-updated', (settings) => {
+      setLeadTime(settings.reminderLeadTime || 0)
+    })
+
     return () => {
       socket.off('reminders-updated')
       socket.off('reminder-due')
+      socket.off('settings-updated')
     }
   }, [fetchReminders])
 

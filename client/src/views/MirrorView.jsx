@@ -8,6 +8,7 @@ function MirrorView() {
   const [kioskState, setKioskState] = useState(null)
   const [reminders, setReminders] = useState([])
   const [currentTime, setCurrentTime] = useState(new Date())
+  const [leadTime, setLeadTime] = useState(0)
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000)
@@ -26,9 +27,20 @@ function MirrorView() {
     setKioskState(data)
   }
 
+  const fetchSettings = async () => {
+    try {
+      const res = await fetch('/api/settings')
+      const data = await res.json()
+      setLeadTime(data.reminderLeadTime || 0)
+    } catch (error) {
+      console.error('Failed to fetch settings:', error)
+    }
+  }
+
   useEffect(() => {
     fetchReminders()
     fetchKioskState()
+    fetchSettings()
 
     socket.emit('mirror-connect')
 
@@ -38,9 +50,14 @@ function MirrorView() {
 
     socket.on('reminders-updated', fetchReminders)
 
+    socket.on('settings-updated', (settings) => {
+      setLeadTime(settings.reminderLeadTime || 0)
+    })
+
     return () => {
       socket.off('kiosk-state-update')
       socket.off('reminders-updated')
+      socket.off('settings-updated')
     }
   }, [])
 
@@ -76,10 +93,12 @@ function MirrorView() {
 
   // Mirror the same logic as KioskView - find pending reminders based on time
   const now = new Date()
-  const currentTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
+  // Add lead time to current time for comparison
+  const adjustedTime = new Date(now.getTime() + leadTime * 60 * 1000)
+  const adjustedTimeStr = `${String(adjustedTime.getHours()).padStart(2, '0')}:${String(adjustedTime.getMinutes()).padStart(2, '0')}`
 
-  // Find the active reminder (same logic as kiosk)
-  const activeReminder = reminders.find(r => !r.isCompleted && r.time <= currentTimeStr)
+  // Find the active reminder (same logic as kiosk, with lead time)
+  const activeReminder = reminders.find(r => !r.isCompleted && r.time <= adjustedTimeStr)
   // Exclude the active reminder from the upcoming list
   const upcomingReminders = reminders.filter(r =>
     !r.isCompleted && (!activeReminder || r._id !== activeReminder._id)

@@ -1,0 +1,671 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+}
+
+/* ============ KIOSK STYLES ============ */
+.kiosk-container {
+  height: 100vh;
+  width: 100vw;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  color: white;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.kiosk-header {
+  padding: 20px 40px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.kiosk-time {
+  font-size: 3rem;
+  font-weight: 300;
+}
+
+.kiosk-date {
+  font-size: 1.5rem;
+  opacity: 0.8;
+}
+
+.kiosk-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+}
+
+.kiosk-idle {
+  text-align: center;
+}
+
+.kiosk-idle h1 {
+  font-size: 3rem;
+  font-weight: 300;
+  margin-bottom: 20px;
+  opacity: 0.9;
+}
+
+.kiosk-idle p {
+  font-size: 1.5rem;
+  opacity: 0.6;
+}
+
+/* Reminder Card - Big and Easy to Tap */
+.reminder-card {
+  background: white;
+  color: #1a1a2e;
+  border-radius: 30px;
+  padding: 60px 80px;
+  text-align: center;
+  max-width: 90%;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+  animation: slideUp 0.5s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.reminder-type {
+  font-size: 1.2rem;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  color: #666;
+  margin-bottom: 20px;
+}
+
+.reminder-title {
+  font-size: 4rem;
+  font-weight: 700;
+  margin-bottom: 20px;
+  line-height: 1.2;
+}
+
+.reminder-description {
+  font-size: 1.8rem;
+  color: #666;
+  margin-bottom: 50px;
+}
+
+.reminder-time-scheduled {
+  font-size: 1.4rem;
+  color: #999;
+  margin-bottom: 40px;
+}
+
+/* Big Touch Button */
+.confirm-button {
+  background: linear-gradient(135deg, #00c853 0%, #00e676 100%);
+  color: white;
+  border: none;
+  border-radius: 25px;
+  padding: 40px 100px;
+  font-size: 2.5rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 10px 30px rgba(0, 200, 83, 0.4);
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.confirm-button:hover {
+  transform: scale(1.02);
+  box-shadow: 0 15px 40px rgba(0, 200, 83, 0.5);
+}
+
+.confirm-button:active {
+  transform: scale(0.98);
+}
+
+.confirm-button .checkmark {
+  font-size: 3rem;
+}
+
+/* Button container */
+.reminder-buttons {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 30px;
+}
+
+/* Skip Button */
+.skip-button {
+  background: linear-gradient(135deg, #ff5252 0%, #ff1744 100%);
+  color: white;
+  border: none;
+  border-radius: 25px;
+  padding: 40px 80px;
+  font-size: 2.5rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 10px 30px rgba(255, 82, 82, 0.4);
+}
+
+.skip-button:hover {
+  transform: scale(1.02);
+  box-shadow: 0 15px 40px rgba(255, 82, 82, 0.5);
+}
+
+.skip-button:active {
+  transform: scale(0.98);
+}
+
+/* Success State */
+.success-message {
+  text-align: center;
+  animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.success-icon {
+  font-size: 8rem;
+  margin-bottom: 30px;
+}
+
+.success-message h2 {
+  font-size: 3.5rem;
+  font-weight: 300;
+  margin-bottom: 20px;
+}
+
+.success-message p {
+  font-size: 1.5rem;
+  opacity: 0.7;
+}
+
+/* Upcoming Reminders */
+.upcoming-section {
+  padding: 30px 40px;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.upcoming-title {
+  font-size: 1.2rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  opacity: 0.6;
+  margin-bottom: 15px;
+}
+
+.upcoming-list {
+  display: flex;
+  gap: 20px;
+  overflow-x: auto;
+  padding-bottom: 10px;
+}
+
+.upcoming-item {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 20px 30px;
+  border-radius: 15px;
+  min-width: 200px;
+  flex-shrink: 0;
+}
+
+.upcoming-item.completed {
+  opacity: 0.5;
+  text-decoration: line-through;
+}
+
+.upcoming-item-time {
+  font-size: 1.3rem;
+  font-weight: 600;
+  margin-bottom: 5px;
+}
+
+.upcoming-item-title {
+  font-size: 1rem;
+  opacity: 0.8;
+}
+
+/* ============ CAREGIVER DASHBOARD ============ */
+.dashboard-container {
+  min-height: 100vh;
+  background: #f5f7fa;
+}
+
+.dashboard-header {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  color: white;
+  padding: 30px 40px;
+}
+
+.dashboard-header h1 {
+  font-size: 2rem;
+  font-weight: 600;
+  margin-bottom: 5px;
+}
+
+.dashboard-header p {
+  opacity: 0.7;
+}
+
+.dashboard-nav {
+  display: flex;
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.dashboard-nav a {
+  color: white;
+  text-decoration: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  transition: background 0.2s;
+}
+
+.dashboard-nav a:hover,
+.dashboard-nav a.active {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.dashboard-content {
+  padding: 40px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+}
+
+@media (max-width: 1000px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.dashboard-card {
+  background: white;
+  border-radius: 16px;
+  padding: 30px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.dashboard-card h2 {
+  font-size: 1.3rem;
+  color: #1a1a2e;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Kiosk Status */
+.kiosk-status {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 12px;
+}
+
+.status-indicator {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #ccc;
+}
+
+.status-indicator.online {
+  background: #00c853;
+  box-shadow: 0 0 10px rgba(0, 200, 83, 0.5);
+}
+
+.status-indicator.offline {
+  background: #ff5252;
+}
+
+/* Reminder List */
+.reminder-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.reminder-item {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 12px;
+  transition: all 0.2s;
+}
+
+.reminder-item:hover {
+  background: #eef1f5;
+}
+
+.reminder-item-time {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: #1a1a2e;
+  min-width: 80px;
+}
+
+.reminder-item-info {
+  flex: 1;
+}
+
+.reminder-item-title {
+  font-weight: 600;
+  color: #1a1a2e;
+  margin-bottom: 4px;
+}
+
+.reminder-item-days {
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.reminder-item-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.btn-primary {
+  background: #1a1a2e;
+  color: white;
+}
+
+.btn-primary:hover {
+  background: #2a2a4e;
+}
+
+.btn-secondary {
+  background: #e0e0e0;
+  color: #333;
+}
+
+.btn-secondary:hover {
+  background: #d0d0d0;
+}
+
+.btn-danger {
+  background: #ff5252;
+  color: white;
+}
+
+.btn-danger:hover {
+  background: #ff3333;
+}
+
+.btn-success {
+  background: #00c853;
+  color: white;
+}
+
+.btn-success:hover {
+  background: #00a844;
+}
+
+/* Form Styles */
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 8px;
+  color: #333;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid #e0e0e0;
+  border-radius: 10px;
+  font-size: 1rem;
+  transition: border-color 0.2s;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: #1a1a2e;
+}
+
+.days-selector {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.day-btn {
+  padding: 10px 15px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  background: white;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.day-btn.selected {
+  background: #1a1a2e;
+  color: white;
+  border-color: #1a1a2e;
+}
+
+/* Activity Log */
+.activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.activity-item {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 10px;
+}
+
+.activity-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+}
+
+.activity-icon.completed {
+  background: #e8f5e9;
+}
+
+.activity-icon.missed {
+  background: #ffebee;
+}
+
+.activity-info {
+  flex: 1;
+}
+
+.activity-title {
+  font-weight: 500;
+  color: #1a1a2e;
+}
+
+.activity-time {
+  font-size: 0.85rem;
+  color: #666;
+}
+
+/* Modal */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal {
+  background: white;
+  border-radius: 20px;
+  padding: 40px;
+  max-width: 500px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal h2 {
+  margin-bottom: 30px;
+  color: #1a1a2e;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 15px;
+  margin-top: 30px;
+  justify-content: flex-end;
+}
+
+/* ============ MIRROR VIEW ============ */
+.mirror-container {
+  min-height: 100vh;
+  background: #1a1a2e;
+  padding: 40px;
+}
+
+.mirror-header {
+  color: white;
+  margin-bottom: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.mirror-header h1 {
+  font-size: 1.5rem;
+  font-weight: 500;
+}
+
+.mirror-frame {
+  background: #000;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  aspect-ratio: 16/9;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.mirror-content {
+  width: 100%;
+  height: 100%;
+}
+
+/* Connection Status */
+.connection-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 20px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 30px;
+  color: white;
+}
+
+.connection-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.connection-dot.connected {
+  background: #00c853;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.connection-dot.disconnected {
+  background: #ff5252;
+}
+
+/* Empty States */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #999;
+}
+
+.empty-state-icon {
+  font-size: 4rem;
+  margin-bottom: 20px;
+  opacity: 0.5;
+}
+
+.empty-state p {
+  font-size: 1.1rem;
+}

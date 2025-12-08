@@ -147,7 +147,10 @@ function KioskView() {
     })
   }
 
-  const upcomingReminders = reminders.filter(r => !r.isCompleted)
+  // Exclude the active reminder from the upcoming list
+  const upcomingReminders = reminders.filter(r =>
+    !r.isCompleted && (!activeReminder || r._id !== activeReminder._id)
+  )
 
   return (
     <div className="kiosk-container" onClick={handleActivity}>

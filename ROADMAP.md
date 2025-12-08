@@ -26,6 +26,7 @@
 - [ ] **Voice announcements** - Text-to-speech for reminders
 - [ ] **Multiple kiosks** - Support multiple users/devices
 - [ ] **Timezone support** - Handle different timezones for remote caregivers
+- [ ] **Good morning/good night check-in** - Button to send email/message to caregiver confirming they're awake/going to bed
 
 ### Nice to Have
 - [ ] **Photo confirmation** - Optional photo when marking complete

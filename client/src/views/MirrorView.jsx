@@ -80,7 +80,10 @@ function MirrorView() {
 
   // Find the active reminder (same logic as kiosk)
   const activeReminder = reminders.find(r => !r.isCompleted && r.time <= currentTimeStr)
-  const upcomingReminders = reminders.filter(r => !r.isCompleted)
+  // Exclude the active reminder from the upcoming list
+  const upcomingReminders = reminders.filter(r =>
+    !r.isCompleted && (!activeReminder || r._id !== activeReminder._id)
+  )
 
   return (
     <div className="mirror-container">

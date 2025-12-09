@@ -430,10 +430,11 @@ app.get('/api/settings', async (req, res) => {
 // Update settings
 app.put('/api/settings', async (req, res) => {
   try {
-    const { reminderLeadTime, displayOnly } = req.body;
+    const { reminderLeadTime, displayOnly, autoSkipTimeout } = req.body;
     const updateFields = {};
     if (reminderLeadTime !== undefined) updateFields.reminderLeadTime = reminderLeadTime;
     if (displayOnly !== undefined) updateFields.displayOnly = displayOnly;
+    if (autoSkipTimeout !== undefined) updateFields.autoSkipTimeout = autoSkipTimeout;
 
     const settings = await Settings.findOneAndUpdate(
       { settingsId: 'default' },

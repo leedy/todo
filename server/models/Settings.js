@@ -15,6 +15,11 @@ const settingsSchema = new mongoose.Schema({
   displayOnly: {
     type: Boolean,
     default: false
+  },
+  autoSkipTimeout: {
+    type: Number,
+    default: 0,  // 0 means disabled, otherwise minutes until auto-skip
+    min: 0
   }
 }, {
   timestamps: true

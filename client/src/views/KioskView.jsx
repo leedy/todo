@@ -11,6 +11,8 @@ function KioskView() {
   const [successMessage, setSuccessMessage] = useState('')
   const [leadTime, setLeadTime] = useState(0)
   const [displayOnly, setDisplayOnly] = useState(false)
+  const [autoSkipTimeout, setAutoSkipTimeout] = useState(0)
+  const [reminderStartTime, setReminderStartTime] = useState(null)
   const activeReminderRef = useRef(null)
 
   // Update clock every second
@@ -26,6 +28,7 @@ function KioskView() {
       const data = await res.json()
       setLeadTime(data.reminderLeadTime || 0)
       setDisplayOnly(data.displayOnly || false)
+      setAutoSkipTimeout(data.autoSkipTimeout || 0)
     } catch (error) {
       console.error('Failed to fetch settings:', error)
     }
@@ -50,15 +53,28 @@ function KioskView() {
 
       const pending = data.find(r => !r.isCompleted && r.time <= adjustedTimeStr)
 
-      // In display-only mode, auto-complete current reminder when a new one becomes due
-      if (displayOnly && currentActiveReminder && pending && pending._id !== currentActiveReminder._id) {
-        // Auto-complete the current reminder before showing the new one
-        await fetch(`/api/kiosk/complete/${currentActiveReminder._id}`, { method: 'POST' })
-        socket.emit('kiosk-state-change', {
-          currentReminderId: pending._id,
-          currentView: 'reminder'
-        })
-        setActiveReminder(pending)
+      // Handle auto-actions when a new reminder becomes due
+      if (currentActiveReminder && pending && pending._id !== currentActiveReminder._id) {
+        if (displayOnly) {
+          // In display-only mode, auto-complete current reminder when a new one becomes due
+          await fetch(`/api/kiosk/complete/${currentActiveReminder._id}`, { method: 'POST' })
+          socket.emit('kiosk-state-change', {
+            currentReminderId: pending._id,
+            currentView: 'reminder'
+          })
+          setActiveReminder(pending)
+        } else if (pending.type === currentActiveReminder.type) {
+          // In normal mode, auto-skip current reminder when a new one of the same type becomes due
+          await fetch(`/api/kiosk/skip/${currentActiveReminder._id}`, { method: 'POST' })
+          socket.emit('kiosk-state-change', {
+            currentReminderId: pending._id,
+            currentView: 'reminder'
+          })
+          setActiveReminder(pending)
+        } else {
+          // Different type - just show the new one (current stays unanswered)
+          setActiveReminder(pending)
+        }
       } else if (pending && !showSuccess) {
         setActiveReminder(pending)
       } else if (!pending) {
@@ -73,6 +89,55 @@ function KioskView() {
   useEffect(() => {
     activeReminderRef.current = activeReminder
   }, [activeReminder])
+
+  // Track when a reminder becomes active (for auto-skip timeout)
+  useEffect(() => {
+    if (activeReminder) {
+      setReminderStartTime(Date.now())
+    } else {
+      setReminderStartTime(null)
+    }
+  }, [activeReminder?._id])
+
+  // Auto-skip timer effect
+  useEffect(() => {
+    if (!autoSkipTimeout || !activeReminder || !reminderStartTime || displayOnly) {
+      return
+    }
+
+    const timeoutMs = autoSkipTimeout * 60 * 1000
+    const elapsed = Date.now() - reminderStartTime
+    const remaining = timeoutMs - elapsed
+
+    if (remaining <= 0) {
+      // Already past timeout, skip immediately
+      fetch(`/api/kiosk/skip/${activeReminder._id}`, { method: 'POST' })
+        .then(() => {
+          socket.emit('kiosk-state-change', {
+            currentReminderId: null,
+            currentView: 'idle'
+          })
+          fetchReminders(null)
+        })
+      return
+    }
+
+    // Set timer for remaining time
+    const timer = setTimeout(() => {
+      if (activeReminderRef.current && activeReminderRef.current._id === activeReminder._id) {
+        fetch(`/api/kiosk/skip/${activeReminder._id}`, { method: 'POST' })
+          .then(() => {
+            socket.emit('kiosk-state-change', {
+              currentReminderId: null,
+              currentView: 'idle'
+            })
+            fetchReminders(null)
+          })
+      }
+    }, remaining)
+
+    return () => clearTimeout(timer)
+  }, [autoSkipTimeout, activeReminder, reminderStartTime, displayOnly, fetchReminders])
 
   useEffect(() => {
     fetchReminders(activeReminderRef.current)
@@ -97,6 +162,7 @@ function KioskView() {
     socket.on('settings-updated', (settings) => {
       setLeadTime(settings.reminderLeadTime || 0)
       setDisplayOnly(settings.displayOnly || false)
+      setAutoSkipTimeout(settings.autoSkipTimeout || 0)
     })
 
     return () => {

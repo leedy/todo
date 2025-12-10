@@ -9,6 +9,7 @@ function MirrorView() {
   const [reminders, setReminders] = useState([])
   const [currentTime, setCurrentTime] = useState(new Date())
   const [leadTime, setLeadTime] = useState(0)
+  const [autoSkipTimeout, setAutoSkipTimeout] = useState(0)
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000)
@@ -32,6 +33,7 @@ function MirrorView() {
       const res = await fetch('/api/settings')
       const data = await res.json()
       setLeadTime(data.reminderLeadTime || 0)
+      setAutoSkipTimeout(data.autoSkipTimeout || 0)
     } catch (error) {
       console.error('Failed to fetch settings:', error)
     }
@@ -52,6 +54,7 @@ function MirrorView() {
 
     socket.on('settings-updated', (settings) => {
       setLeadTime(settings.reminderLeadTime || 0)
+      setAutoSkipTimeout(settings.autoSkipTimeout || 0)
     })
 
     return () => {
@@ -97,8 +100,9 @@ function MirrorView() {
   const adjustedTime = new Date(now.getTime() + leadTime * 60 * 1000)
   const adjustedTimeStr = `${String(adjustedTime.getHours()).padStart(2, '0')}:${String(adjustedTime.getMinutes()).padStart(2, '0')}`
 
-  // Calculate lookback time (don't show reminders more than 30 min past their time)
-  const lookbackMinutes = 30
+  // Calculate lookback time - use autoSkipTimeout if set, otherwise default to 60 min
+  // This ensures reminders stay visible until they would be auto-skipped
+  const lookbackMinutes = autoSkipTimeout > 0 ? autoSkipTimeout : 60
   const lookbackTime = new Date(now.getTime() - lookbackMinutes * 60 * 1000)
   const lookbackTimeStr = `${String(lookbackTime.getHours()).padStart(2, '0')}:${String(lookbackTime.getMinutes()).padStart(2, '0')}`
 

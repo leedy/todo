@@ -51,8 +51,9 @@ function KioskView() {
       const adjustedTime = new Date(now.getTime() + leadTime * 60 * 1000)
       const adjustedTimeStr = `${String(adjustedTime.getHours()).padStart(2, '0')}:${String(adjustedTime.getMinutes()).padStart(2, '0')}`
 
-      // Calculate lookback time (don't show reminders more than 30 min past their time)
-      const lookbackMinutes = 30
+      // Calculate lookback time - use autoSkipTimeout if set, otherwise default to 60 min
+      // This ensures reminders stay visible until they would be auto-skipped
+      const lookbackMinutes = autoSkipTimeout > 0 ? autoSkipTimeout : 60
       const lookbackTime = new Date(now.getTime() - lookbackMinutes * 60 * 1000)
       const lookbackTimeStr = `${String(lookbackTime.getHours()).padStart(2, '0')}:${String(lookbackTime.getMinutes()).padStart(2, '0')}`
 

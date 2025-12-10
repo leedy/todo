@@ -93,15 +93,24 @@ function MirrorView() {
 
   // Mirror the same logic as KioskView - find pending reminders based on time
   const now = new Date()
-  // Add lead time to current time for comparison
+  // Add lead time to current time for comparison (show reminders early)
   const adjustedTime = new Date(now.getTime() + leadTime * 60 * 1000)
   const adjustedTimeStr = `${String(adjustedTime.getHours()).padStart(2, '0')}:${String(adjustedTime.getMinutes()).padStart(2, '0')}`
 
-  // Find the active reminder (same logic as kiosk, with lead time)
-  const activeReminder = reminders.find(r => !r.isCompleted && r.time <= adjustedTimeStr)
-  // Exclude the active reminder from the upcoming list
+  // Calculate lookback time (don't show reminders more than 30 min past their time)
+  const lookbackMinutes = 30
+  const lookbackTime = new Date(now.getTime() - lookbackMinutes * 60 * 1000)
+  const lookbackTimeStr = `${String(lookbackTime.getHours()).padStart(2, '0')}:${String(lookbackTime.getMinutes()).padStart(2, '0')}`
+
+  // Find the active reminder (same logic as kiosk, with lead time and lookback)
+  const activeReminder = reminders.find(r => !r.isCompleted && r.time <= adjustedTimeStr && r.time >= lookbackTimeStr)
+
+  // Exclude the active reminder and past reminders from the upcoming list
+  const nowTimeStr = `${String(currentTime.getHours()).padStart(2, '0')}:${String(currentTime.getMinutes()).padStart(2, '0')}`
   const upcomingReminders = reminders.filter(r =>
-    !r.isCompleted && (!activeReminder || r._id !== activeReminder._id)
+    !r.isCompleted &&
+    (!activeReminder || r._id !== activeReminder._id) &&
+    r.time > nowTimeStr // Only show future reminders
   )
 
   return (

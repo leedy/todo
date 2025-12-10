@@ -25,6 +25,9 @@ const PORT = process.env.PORT || 5177;
 app.use(cors());
 app.use(express.json());
 
+// Serve static files from the built frontend
+app.use(express.static(path.join(__dirname, '../client/dist')));
+
 // Connect to MongoDB
 connectDB();
 
@@ -546,6 +549,11 @@ setInterval(async () => {
     console.error('Scheduler error:', error);
   }
 }, 60000); // Check every minute
+
+// Catch-all route for React Router (must be after API routes)
+app.get('/{*splat}', (req, res) => {
+  res.sendFile(path.join(__dirname, '../client/dist/index.html'));
+});
 
 // Start server
 server.listen(PORT, () => {

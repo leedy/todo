@@ -64,7 +64,12 @@ function KioskView() {
 
       // Handle auto-actions when a new reminder becomes due
       if (currentActiveReminder && pending && pending._id !== currentActiveReminder._id) {
-        if (displayOnly) {
+        // Verify currentActiveReminder is actually in valid time window before auto-completing
+        // This prevents completing stale reminders from previous sessions
+        const currentReminderInWindow = currentActiveReminder.time <= adjustedTimeStr &&
+                                         currentActiveReminder.time >= lookbackTimeStr
+
+        if (displayOnly && currentReminderInWindow) {
           // In display-only mode, auto-complete current reminder when a new one becomes due
           await fetch(`/api/kiosk/complete/${currentActiveReminder._id}`, { method: 'POST' })
           socket.emit('kiosk-state-change', {
@@ -72,7 +77,7 @@ function KioskView() {
             currentView: 'reminder'
           })
           setActiveReminder(pending)
-        } else if (pending.type === currentActiveReminder.type) {
+        } else if (!displayOnly && currentReminderInWindow && pending.type === currentActiveReminder.type) {
           // In normal mode, auto-skip current reminder when a new one of the same type becomes due
           await fetch(`/api/kiosk/skip/${currentActiveReminder._id}`, { method: 'POST' })
           socket.emit('kiosk-state-change', {
@@ -81,7 +86,7 @@ function KioskView() {
           })
           setActiveReminder(pending)
         } else {
-          // Different type - just show the new one (current stays unanswered)
+          // Different type or stale reminder - just show the new one (don't auto-complete/skip)
           setActiveReminder(pending)
         }
       } else if (pending && !showSuccess) {
@@ -92,7 +97,7 @@ function KioskView() {
     } catch (error) {
       console.error('Failed to fetch reminders:', error)
     }
-  }, [showSuccess, leadTime, displayOnly])
+  }, [showSuccess, leadTime, displayOnly, autoSkipTimeout])
 
   // Keep ref in sync with state for use in intervals
   useEffect(() => {
